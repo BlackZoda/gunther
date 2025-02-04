@@ -36,36 +36,49 @@ def parse_markdown_table(md_text):
   return table
 
 def create_table_embed(table):
-  """Splits wide tables into multiple embeds if necessary."""
-  embeds = []
-    
-  if len(table) < 2 or any(len(row) != len(table[0]) for row in table):
-    embed = discord.Embed(title="Formatted Table", description="Invalid table format.", color=discord.Color.red())
-    return [embed]
+    """Creates properly formatted embeds for tables, handling long text more gracefully."""
+    embeds = []
 
-  # Calculate column widths
-  col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
+    if len(table) < 2 or any(len(row) != len(table[0]) for row in table):
+        embed = discord.Embed(title="Formatted Table", description="Invalid table format.", color=discord.Color.red())
+        return [embed]
 
-  # Wrap text inside the last column if necessary
-  for row in table[1:]:  # Skip headers
-    if len(row[-1]) > MAX_COLUMN_WIDTH:
-      row[-1] = "\n".join(textwrap.wrap(row[-1], width=MAX_COLUMN_WIDTH))
+    # Calculate column widths for all columns dynamically
+    col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
 
-  # Recalculate widths after wrapping
-  col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
-  total_width = sum(col_widths) + (3 * (len(table[0]) - 1))  
+    # Check if any column contains long text
+    long_text_column = any(len(row[-1]) > MAX_COLUMN_WIDTH for row in table[1:])
 
-  # If still too wide, split the table into two
-  if total_width > MAX_DISCORD_WIDTH:
-    embeds.extend(split_wide_table(table, col_widths))
-  else:
-    embeds.append(create_single_table_embed(table))
+    # If any column has long text, switch to list-style formatting
+    if long_text_column:
+        embed = discord.Embed(title="Formatted Table", color=discord.Color.blue())
 
-  return embeds
+        for row in table[1:]:  # Skip the header
+            # Dynamically unpack each row based on the number of columns
+            fields = [f"**{table[0][i]}**: {row[i]}" for i in range(len(row))]
+            wrapped_fields = "\n\n".join([textwrap.fill(field, width=MAX_COLUMN_WIDTH) for field in fields])
+            embed.add_field(name=f"Row {table.index(row)}", value=wrapped_fields, inline=False)
+
+        return [embed]
+
+    # Otherwise, attempt to format as a regular table
+    total_width = sum(col_widths) + (3 * (len(table[0]) - 1))
+
+    if total_width > MAX_DISCORD_WIDTH:
+        embeds.extend(split_wide_table(table, col_widths))  # Keep old split-table functionality
+    else:
+        embeds.append(create_single_table_embed(table))  # Standard table formatting for short text
+
+    return embeds
 
 def split_wide_table(table, col_widths):
   """Splits the table into multiple embeds if necessary."""
   embeds = []
+
+  # If only two columns, no need to split
+  if len(table[0]) < 3:
+    embeds.append(create_single_table_embed(table, "Formatted Table"))
+    return embeds
 
   # First embed: Difficulty & Modifiers
   first_table = [[row[0], row[1]] for row in table]
@@ -133,3 +146,4 @@ async def table_start(ctx):
   await ctx.send("Table started. Type '!table_end' to end the table.")
 
 bot.run(TOKEN)
+
