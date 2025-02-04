@@ -55,22 +55,35 @@ def create_table_embed(table):
 
 def parse_markdown_table(md_text):
     rows = md_text.strip().split("\n")
-
     table = []
 
-    # Parse the header row, skipping any empty cells
+    # Parse the header row and remove any empty spaces at the start and end of each column
     header = rows[0].strip().split("|")
-    header = [col.strip() for col in header if col.strip()]  # Skip any empty columns
+    header = [col.strip() for col in header[1:] if col.strip()]  # Skip the first empty column
     table.append(header)
 
     # Parse the rest of the rows, skipping the separator row and empty columns
     for row in rows[2:]:  # Skipping the second row which is the separator
         row_data = row.strip().split("|")
-        row_data = [col.strip() for col in row_data if col.strip()]  # Remove empty columns
-        if row_data:  # Avoid empty rows
-            table.append(row_data)
+        row_data = [col.strip() for col in row_data]  # Remove any unwanted spaces
 
-    print("Parsed Table:", table)
+        # If there's an extra empty first column (before the first column of data), remove it
+        if row_data[0] == '':
+            row_data = row_data[1:]
+
+        # Initialize a list to hold the correctly aligned row
+        full_row_data = [''] * len(header)  # Start with empty cells equal to the header's length
+
+        # Ensure row_data doesn't exceed header length, and insert data accordingly
+        for i, col in enumerate(row_data):
+            if i < len(header):  # Only insert data into columns that exist in the header
+                full_row_data[i] = col
+        
+        # Avoid adding empty rows
+        if any(cell != '' for cell in full_row_data):
+            table.append(full_row_data)
+
+    print("Parsed Table:", table)  # For debugging
     return table
 
 def create_single_table_embed(table):
