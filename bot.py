@@ -32,26 +32,69 @@ def create_table_embed(table):
     # Calculate column widths for all columns dynamically
     col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
 
-    # Check if any column contains long text
-    long_text_column = any(len(row[-1]) > MAX_COLUMN_WIDTH for row in table[1:])
-
-    # If any column has long text, switch to list-style formatting
-    if long_text_column:
+    # Helper function to create a single embed for a subset of rows
+    def create_single_embed(fields):
+        """Helper function to create a single embed for a subset of rows."""
         embed = discord.Embed(title="Formatted Table", color=discord.Color.blue())
+        table_str = "```"
 
-        for row in table[1:]:  # Skip the header
-            # Dynamically unpack each row based on the number of columns
-            fields = [f"**{table[0][i]}**: {row[i]}" for i in range(len(row))]
-            wrapped_fields = "\n\n".join([textwrap.fill(field, width=MAX_COLUMN_WIDTH) for field in fields])
-            embed.add_field(name=f"Row {table.index(row)}", value=wrapped_fields, inline=False)
+        # Add each row with proper alignment
+        for field in fields:
+            table_str += f"{field}\n"
+        table_str += "```"
 
-        return [embed]
+        embed.description = table_str
+        return embed
 
-    # Otherwise, format as a regular table
-    embed = create_single_table_embed(table)
-    embeds.append(embed)
+    # Function to format rows with padding for missing columns
+    def format_row(row, col_widths):
+        """Helper function to format rows with dynamic column widths."""
+        return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" if row[i] else " " * col_widths[i] for i in range(len(row)))
 
+    # Split rows into chunks, considering both 25 fields and 6000 character limit
+    max_fields_per_embed = 25
+    max_characters_per_embed = 6000
+    max_description_length = 4096
+    fields = []
+
+    # Add header row first
+    header_row = " | ".join(table[0])
+    fields.append(header_row)
+
+    # Prepare content for embeds
+    all_rows = [header_row] + [format_row(row, col_widths) for row in table[1:]]
+    
+    # Create a new embed when the description length exceeds the limit
+    def split_into_embeds(rows):
+        nonlocal embeds
+        current_embed_fields = []
+        current_embed_description = ""
+
+        for row in rows:
+            # Check if adding this row exceeds the embed description limit
+            if len(current_embed_description) + len(row) + 3 > max_description_length:
+                # Create a new embed and reset the description
+                embeds.append(create_single_embed(current_embed_fields))
+                current_embed_fields = [header_row]  # Start with header for new embed
+                current_embed_description = ""
+
+            # Add the row to the current embed
+            current_embed_fields.append(row)
+            current_embed_description += row + "\n"
+
+        # Add the last embed if there are fields
+        if current_embed_fields:
+            embeds.append(create_single_embed(current_embed_fields))
+
+    # Split into embeds
+    split_into_embeds(all_rows)
+
+    # Return the generated embeds
     return embeds
+
+def format_row(row, col_widths):
+    """Helper function to format rows with dynamic column widths."""
+    return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" for i in range(len(row)))
 
 def parse_markdown_table(md_text):
     rows = md_text.strip().split("\n")
@@ -85,24 +128,6 @@ def parse_markdown_table(md_text):
 
     print("Parsed Table:", table)  # For debugging
     return table
-
-def create_single_table_embed(table):
-    """Creates an individual embed for the table."""
-    embed = discord.Embed(title="Formatted Table", color=discord.Color.blue())
-
-    col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
-
-    def format_row(row):
-        return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" for i in range(len(row)))
-
-    header_text = format_row(table[0])
-    separator = "-|-".join("-" * w for w in col_widths)
-    row_texts = [format_row(row) for row in table[1:]]
-
-    table_str = f"```{header_text}\n{separator}\n" + "\n".join(row_texts) + "```"
-
-    embed.description = table_str
-    return embed
 
 @bot.event
 async def on_ready():
