@@ -1,132 +1,66 @@
 import os
 import discord
 import re
-import textwrap
 from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_BOT_TOKEN') or ""
-MAX_DISCORD_WIDTH = 80
-MAX_COLUMN_WIDTH = 50
 
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
-
 TABLE_PATTERN = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)
 
 table_buffer = {}
+table_mode = {}  # Tracks whether it's regular table or paragraph mode
 
 def create_table_embed(table):
     """Creates properly formatted embeds for tables."""
-    embeds = []
-
-    # Check for invalid table structure if any row has a different number of columns
     if len(table) < 2 or any(len(row) != len(table[0]) for row in table):
         embed = discord.Embed(title="Formatted Table", description="Invalid table format.", color=discord.Color.red())
         return [embed]
-
-    # Calculate column widths for all columns dynamically
-    col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
-
-    # Helper function to create a single embed for a subset of rows
-    def create_single_embed(fields):
-        """Helper function to create a single embed for a subset of rows."""
-        embed = discord.Embed(title="Formatted Table", color=discord.Color.blue())
-        table_str = "```"
-
-        # Add each row with proper alignment
-        for field in fields:
-            table_str += f"{field}\n"
-        table_str += "```"
-
-        embed.description = table_str
-        return embed
-
-    # Function to format rows with padding for missing columns
-    def format_row(row, col_widths):
-        """Helper function to format rows with dynamic column widths."""
-        return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" if row[i] else " " * col_widths[i] for i in range(len(row)))
-
-    # Split rows into chunks, considering both 25 fields and 6000 character limit
-    max_fields_per_embed = 25
-    max_characters_per_embed = 6000
-    max_description_length = 4096
-    fields = []
-
-    # Add header row first
-    header_row = " | ".join(table[0])
-    fields.append(header_row)
-
-    # Prepare content for embeds
-    all_rows = [header_row] + [format_row(row, col_widths) for row in table[1:]]
     
-    # Create a new embed when the description length exceeds the limit
-    def split_into_embeds(rows):
-        nonlocal embeds
-        current_embed_fields = []
-        current_embed_description = ""
+    col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
+    
+    def format_row(row):
+        return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" for i in range(len(row)))
+    
+    embed = discord.Embed(title="Formatted Table", color=discord.Color.blue())
+    table_str = "```\n" + "\n".join(format_row(row) for row in table) + "\n```"
+    embed.description = table_str
+    return [embed]
 
-        for row in rows:
-            # Check if adding this row exceeds the embed description limit
-            if len(current_embed_description) + len(row) + 3 > max_description_length:
-                # Create a new embed and reset the description
-                embeds.append(create_single_embed(current_embed_fields))
-                current_embed_fields = [header_row]  # Start with header for new embed
-                current_embed_description = ""
-
-            # Add the row to the current embed
-            current_embed_fields.append(row)
-            current_embed_description += row + "\n"
-
-        # Add the last embed if there are fields
-        if current_embed_fields:
-            embeds.append(create_single_embed(current_embed_fields))
-
-    # Split into embeds
-    split_into_embeds(all_rows)
-
-    # Return the generated embeds
-    return embeds
-
-def format_row(row, col_widths):
-    """Helper function to format rows with dynamic column widths."""
-    return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" for i in range(len(row)))
+def create_paragraph_table(table):
+    """Creates paragraph-style formatted table output."""
+    headers = table[0]
+    rows = table[1:]
+    output = []
+    for row in rows:
+        entry = "\n".join(f"**{headers[i]}:** {row[i] if i < len(row) else ''}" for i in range(len(headers)))
+        output.append(entry)
+    return output
 
 def parse_markdown_table(md_text):
+    """Parses a Markdown table into a list of lists, preserving empty cells."""
     rows = md_text.strip().split("\n")
-    table = []
-
-    # Parse the header row and remove any empty spaces at the start and end of each column
-    header = rows[0].strip().split("|")
-    header = [col.strip() for col in header[1:] if col.strip()]  # Skip the first empty column
-    table.append(header)
-
-    # Parse the rest of the rows, skipping the separator row and empty columns
-    for row in rows[2:]:  # Skipping the second row which is the separator
-        row_data = row.strip().split("|")
-        row_data = [col.strip() for col in row_data]  # Remove any unwanted spaces
-
-        # If there's an extra empty first column (before the first column of data), remove it
-        if row_data[0] == '':
-            row_data = row_data[1:]
-
-        # Initialize a list to hold the correctly aligned row
-        full_row_data = [''] * len(header)  # Start with empty cells equal to the header's length
-
-        # Ensure row_data doesn't exceed header length, and insert data accordingly
-        for i, col in enumerate(row_data):
-            if i < len(header):  # Only insert data into columns that exist in the header
-                full_row_data[i] = col
-        
-        # Avoid adding empty rows
-        if any(cell != '' for cell in full_row_data):
-            table.append(full_row_data)
-
-    print("Parsed Table:", table)  # For debugging
+    if len(rows) < 3:
+        return []
+    
+    header = [col.strip() for col in rows[0].split("|")]
+    if header[0] == "":
+        header[0] = " "  # Preserve leading empty cell instead of shifting
+    table = [header]
+    
+    for row in rows[2:]:
+        row_data = [col.strip() for col in row.split("|")]
+        if row_data[0] == "":
+            row_data[0] = " "  # Ensure first column remains correctly positioned
+        while len(row_data) < len(header):
+            row_data.append("")  # Ensure each row has the same number of columns
+        table.append(row_data[:len(header)])  # Truncate excess columns if needed
     return table
 
 @bot.event
@@ -137,32 +71,63 @@ async def on_ready():
 async def on_message(message):
     if message.author.bot:
         return
-
     content = message.content.strip()
-
+    
     if message.author.id in table_buffer:
         if content.lower() == "!table_end":
             full_table = "\n".join(table_buffer.pop(message.author.id))
+            mode = table_mode.pop(message.author.id, "table")
             parsed_table = parse_markdown_table(full_table)
+            if parsed_table:
+                if mode == "table_p":
+                    paragraphs = create_paragraph_table(parsed_table)
+                    for p in paragraphs:
+                        await message.channel.send(p)
+                else:
+                    embeds = create_table_embed(parsed_table)
+                    for embed in embeds:
+                        await message.channel.send(embed=embed)
+            else:
+                await message.channel.send("Invalid table input.")
+        elif content.lower() == "!table_cancel":
+            table_buffer.pop(message.author.id, None)
+            table_mode.pop(message.author.id, None)
+            await message.channel.send("Table input canceled.")
+        else:
+            table_buffer[message.author.id].append(content)
+        return
+    
+    if TABLE_PATTERN.search(content):
+        parsed_table = parse_markdown_table(content)
+        if parsed_table:
             embeds = create_table_embed(parsed_table)
             for embed in embeds:
                 await message.channel.send(embed=embed)
         else:
-            table_buffer[message.author.id].append(content)
-        return
-
-    if TABLE_PATTERN.search(content):
-        parsed_table = parse_markdown_table(content)
-        embeds = create_table_embed(parsed_table)
-        for embed in embeds:
-            await message.channel.send(embed=embed)
-
+            await message.channel.send("Invalid Markdown table.")
+    
     await bot.process_commands(message)
 
 @bot.command()
-async def table_start(ctx):
+async def table(ctx):
     table_buffer[ctx.author.id] = []
-    await ctx.send("Table started. Type '!table_end' to end the table.")
+    table_mode[ctx.author.id] = "table"
+    await ctx.send("Table input started. Use '!table_end' to finish or '!table_cancel' to abort.")
+
+@bot.command()
+async def table_p(ctx):
+    table_buffer[ctx.author.id] = []
+    table_mode[ctx.author.id] = "table_p"
+    await ctx.send("Paragraph table input started. Use '!table_end' to finish or '!table_cancel' to abort.")
+
+@bot.command()
+async def table_cancel(ctx):
+    if ctx.author.id in table_buffer:
+        table_buffer.pop(ctx.author.id, None)
+        table_mode.pop(ctx.author.id, None)
+        await ctx.send("Table input canceled.")
+    else:
+        await ctx.send("No table input in progress.")
 
 bot.run(TOKEN)
 
