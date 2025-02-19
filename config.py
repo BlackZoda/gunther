@@ -16,6 +16,7 @@ IMAP_SERVER = os.getenv('IMAP_SERVER') or ""
 IMAP_PORT = os.getenv('IMAP_PORT') or 993
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".pdf", ".txt", ".mp3", ".mp4", ".wav", ".webm", ".doc", ".docx"}
 ATTACHMENT_DIR = "./tmp/"
+DISCORD_FILE_LIMIT = 25 * 1024 * 1024
 
 # Table Settings
 TABLE_PATTERN = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)

@@ -1,14 +1,18 @@
 import os
+import discord
 import imaplib, email
 from email.header import decode_header
 
 from discord import Attachment
 
 from config import (IMAP_SERVER, IMAP_PORT, EMAIL_USER, EMAIL_PASSWORD,
-    GUILD_ID, DEFAULT_CHANNEL_ID)
+    GUILD_ID, DEFAULT_CHANNEL_ID, ALLOWED_EXTENSIONS, ATTACHMENT_DIR, DISCORD_FILE_LIMIT)
 
 async def fetch_emails(bot, ctx, channel=None):
     """Fetch unread emails, process text and attachments, and send them to Discord."""
+
+    os.makedirs(ATTACHMENT_DIR, exist_ok=True)
+
     try:
         mail = imaplib.IMAP4_SSL(IMAP_SERVER, IMAP_PORT)
         mail.login(EMAIL_USER, EMAIL_PASSWORD)
@@ -62,9 +66,33 @@ def extract_text_from_email(msg):
     return body.strip()
 
 def extract_attachments_from_email(msg):
-    print("Extracting attachments...")
-    pass
+    """Extracts and saves attachements from emails."""
+    attachment_paths = []
+    for part in msg.walk():
+        if part.get_content_disposition() == "attachment":
+            filename, encoding = decode_header(part.get_filename())[0]
+            if isinstance(filename, bytes):
+                filename = filename.decode(encoding or "utf-8")
+
+            file_ext = os.path.splitext(filename)[1].lower()
+            if file_ext in ALLOWED_EXTENSIONS:
+                file_path = os.path.join(ATTACHMENT_DIR, filename)
+                with open(file_path, "wb") as f:
+                    f.write(part.get_payload(decode=True))
+
+                attachment_paths.append(file_path)
+    return attachment_paths
 
 async def post_to_discord(channel, subject, sender, date, body, attachment_paths):
     await channel.send(f"**New Email from {sender}:**\n\nSubject: {subject}\nDate: {date}\n\n{body}")
-    print(attachment_paths)
+
+    for file_path in attachment_paths:
+        file_size = os.path.getsize(file_path)
+
+        if file_size > DISCORD_FILE_LIMIT:
+            await channel.send(f"⚠️ Attachment too large to upload: `{os.path.basename(file_path)}` ({file_size / (1024*1024):.2f} MB)")
+        else:
+            with open(file_path, "rb") as file:
+                await channel.send(file=discord.File(file, filename=os.path.basename(file_path)))
+
+        os.remove(file_path)

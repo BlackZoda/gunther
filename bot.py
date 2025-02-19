@@ -7,8 +7,6 @@ from commands.table_commands import setup_table_commands
 from commands.email_commands import setup_email_commands
 from events.message_handler import handle_message
 
-os.makedirs(ATTACHMENT_DIR, exist_ok=True)
-
 intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
