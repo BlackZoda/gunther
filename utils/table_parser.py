@@ -2,6 +2,8 @@ import discord
 
 import discord
 
+from utils.obsidian_utils import clean_obsidian_links
+
 def create_table_embed(table):
     """Creates a properly formatted Discord embed for tables."""
     if len(table) < 2 or any(len(row) != len(table[0]) for row in table):
@@ -10,7 +12,6 @@ def create_table_embed(table):
 
     # Determine column widths
     col_widths = [max(len(str(row[i])) for row in table) for i in range(len(table[0]))]
-    print(col_widths)
 
     def format_row(row):
         return " | ".join(f"{str(row[i]).ljust(col_widths[i])}" for i in range(len(row)))
@@ -43,14 +44,16 @@ def parse_markdown_table(md_text):
     if len(rows) < 3:
         return []
     
-    header = [col.strip() for col in rows[0].strip("|").split("|")]
+    # Prcess header
+    header = [clean_obsidian_links(col.strip()) for col in rows[0].strip("|").split("|")]
     if header[0] == "":
         header[0] = " "  # Preserve leading empty cell instead of shifting
     table = [header]
     
+    # PRocess table body
     for row in rows[2:]:
 
-        row_data = [col.strip() for col in row.split("|")]
+        row_data = [clean_obsidian_links(col.strip()) for col in row.split("|")]
 
         if row_data[0] == "":
             row_data[0] = " "  # Ensure first column remains correctly positioned
