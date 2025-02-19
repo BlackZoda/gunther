@@ -1,9 +1,13 @@
+import os
 import discord
 from discord.ext import commands
 
-from config import TOKEN
+from config import TOKEN, ATTACHMENT_DIR
 from commands.table_commands import setup_table_commands
 from events.message_handler import handle_message
+
+os.makedirs("./tmp", exist_ok=True)
+print(ATTACHMENT_DIR)
 
 intents = discord.Intents.default()
 intents.messages = True
