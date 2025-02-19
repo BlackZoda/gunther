@@ -4,10 +4,10 @@ from discord.ext import commands
 
 from config import TOKEN, ATTACHMENT_DIR
 from commands.table_commands import setup_table_commands
+from commands.email_commands import setup_email_commands
 from events.message_handler import handle_message
 
-os.makedirs("./tmp", exist_ok=True)
-print(ATTACHMENT_DIR)
+os.makedirs(ATTACHMENT_DIR, exist_ok=True)
 
 intents = discord.Intents.default()
 intents.messages = True
@@ -26,6 +26,7 @@ async def on_message(message):
     await handle_message(bot, message, table_buffer, table_mode)
 
 setup_table_commands(bot, table_buffer, table_mode)
+setup_email_commands(bot)
 
 bot.run(TOKEN)
 

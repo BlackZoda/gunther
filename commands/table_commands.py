@@ -1,5 +1,3 @@
-from utils.email_fetcher import fetch_emails
-
 def setup_table_commands(bot, table_buffer, table_mode):
     @bot.command()
     async def table(ctx):
@@ -21,12 +19,4 @@ def setup_table_commands(bot, table_buffer, table_mode):
             await ctx.send("Table input canceled.")
         else:
             await ctx.send("No table input in progress.")
-
-    @bot.command(name="fetchmail")
-    async def fetchmail(ctx):
-        """Manually fetch emails with a bot command."""
-        await ctx.send("Fetching emails...")
-        await fetch_emails(bot, ctx, ctx.channel)
-
-
 
