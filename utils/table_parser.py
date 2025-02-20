@@ -6,7 +6,7 @@ def parse_markdown_table(md_text):
     if len(rows) < 3:
         return []
     
-    # Prcess header
+    # Process header
     header = [clean_obsidian_links(col.strip()) for col in rows[0].strip("|").split("|")]
     if header[0] == "":
         header[0] = " "  # Preserve leading empty cell instead of shifting

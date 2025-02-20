@@ -1,4 +1,5 @@
 def setup_table_commands(bot, table_buffer, table_mode):
+
     @bot.command()
     async def table(ctx):
         table_buffer[ctx.author.id] = []
