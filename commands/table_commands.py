@@ -12,6 +12,12 @@ def setup_table_commands(bot, table_buffer, table_mode):
         await ctx.send("Paragraph table input started. Use '!table_end' to finish or '!table_cancel' to abort.")
 
     @bot.command()
+    async def table_pl(ctx):
+        table_buffer[ctx.author.id] = []
+        table_mode[ctx.author.id] = "table_pl"
+        await ctx.send("Paragraph table input started. Use '!table_end' to finish or '!table_cancel' to abort.")
+
+    @bot.command()
     async def table_cancel(ctx):
         if ctx.author.id in table_buffer:
             table_buffer.pop(ctx.author.id, None)

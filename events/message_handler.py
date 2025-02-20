@@ -1,4 +1,6 @@
-from utils.table_parser import parse_markdown_table, create_table_embed, create_paragraph_table
+from utils.table_parser import parse_markdown_table
+from utils.table_embeds import create_table_embed
+from utils.table_paragraphs import create_table_paragraphs_descriptors,create_table_paragraphs_by_column
 from config import TABLE_PATTERN
 
 async def handle_message(bot, message, table_buffer, table_mode):
@@ -17,7 +19,11 @@ async def handle_message(bot, message, table_buffer, table_mode):
             parsed_table = parse_markdown_table(full_table)
             if parsed_table:
                 if mode == "table_p":
-                    paragraphs = create_paragraph_table(parsed_table)
+                    paragraphs = create_table_paragraphs_descriptors(parsed_table)
+                    for p in paragraphs:
+                        await message.channel.send(p)
+                elif mode == "table_pl":
+                    paragraphs = create_table_paragraphs_by_column(parsed_table)
                     for p in paragraphs:
                         await message.channel.send(p)
                 else:

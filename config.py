@@ -20,4 +20,5 @@ DISCORD_FILE_LIMIT = 25 * 1024 * 1024
 
 # Table Settings
 TABLE_PATTERN = re.compile(r"^\s*\|.*\|\s*$", re.MULTILINE)
+MAX_LINE_LENGTH = 100
 
