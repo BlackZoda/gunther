@@ -20,7 +20,6 @@ async def fetch_emails(bot, ctx, channel=None):
 
         status, messages = mail.search(None, "UNSEEN")
         if status != "OK" or not messages[0]:
-            print("No new emails.")
             await ctx.send("No new emails.")
             return
 
