@@ -4,6 +4,7 @@ from discord.ext import commands
 from config import TOKEN
 from commands.table_commands import setup_table_commands
 from commands.email_commands import setup_email_commands
+from commands.time_commands import setup_time_commands
 from events.message_handler import handle_message
 
 intents = discord.Intents.default()
@@ -25,6 +26,7 @@ async def on_message(message):
 
 setup_table_commands(bot, table_buffer, table_mode)
 setup_email_commands(bot)
+setup_time_commands(bot)
 
 bot.run(TOKEN)
 
