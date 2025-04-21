@@ -15,7 +15,11 @@ la_date_33 = la_tz_33.strftime("%B %d, %Y")
 openai.api_key = OPEN_AI
     
 def return_time():
-    return f"🇳🇴 **Time in Norway:**\t\t\t`{oslo_time}`\n🇺🇸 **Time in Trumpistan:**\t`{la_time_33}`"
+    no_tabs = "\t" * 4
+    norway = f"🇳🇴 **Time in the Socialist State of Frozen Oil:**{no_tabs}🐧 `{oslo_time}`"
+    us_tabs = "\t" * 1
+    la = f"🇺🇸 **Time in the Consumer Oligarchy of Trumpistan:**{us_tabs}ϟϟ `{la_time_33}`"
+    return norway + "\n" + la
 
 async def generate_history():
     prompt = f"Give me some relevant historical events that happened on or around {la_date_33}. Preferably related to fascism and/or nazi-germany, and write a fun comparison to the current political situation in the USA."
