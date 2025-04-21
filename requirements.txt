@@ -3,4 +3,4 @@ python-dotenv
 email-validator
 pytz
 relativedelta
-openaia
+openai
