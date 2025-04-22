@@ -4,30 +4,32 @@ from dateutil.relativedelta import relativedelta
 import openai
 from config import OPEN_AI
 
-oslo_tz = pytz.timezone('Europe/Oslo')
-la_tz = pytz.timezone('America/Los_Angeles')
-la_tz_33 = datetime.now(la_tz) - relativedelta(years=92)
-oslo_time = datetime.now(oslo_tz).strftime('%Y-%m-%d %H:%M')
-la_time = datetime.now(la_tz).strftime('_%Y-%m-%d %H:%M')
-la_time_33 = la_tz_33.strftime('%Y-%m-%d %H:%M')
-la_date_33 = la_tz_33.strftime("%B %d, %Y")
-
-openai.api_key = OPEN_AI
-    
 def return_time():
+    oslo_tz = pytz.timezone('Europe/Oslo')
+    la_tz = pytz.timezone('America/Los_Angeles')
+    la_tz_33 = datetime.now(la_tz) - relativedelta(years=92)
+    oslo_time = datetime.now(oslo_tz).strftime('%Y-%m-%d %H:%M')
+    # la_time = datetime.now(la_tz).strftime('_%Y-%m-%d %H:%M')
+    la_time_33 = la_tz_33.strftime('%Y-%m-%d %H:%M')
     no_tabs = "\t" * 4
-    norway = f"🇳🇴 **Time in the Socialist State of Frozen Oil:**{no_tabs}🐧 `{oslo_time}`"
+    norway = f"🇳🇴 **Time in the Socialist State of Frozen Oil:**{no_tabs} 🐧 `{oslo_time}`"
     us_tabs = "\t" * 1
-    la = f"🇺🇸 **Time in the Consumer Oligarchy of Trumpistan:**{us_tabs}ϟϟ `{la_time_33}`"
+    la = f"🇺🇸 **Time in the Consumer Oligarchy of Trumpistan:**{us_tabs}🪖 `{la_time_33}`"
     return norway + "\n" + la
 
+openai.api_key = OPEN_AI
+
 async def generate_history():
-    prompt = f"Give me some relevant historical events that happened on or around {la_date_33}. Preferably related to fascism and/or nazi-germany, and write a fun comparison to the current political situation in the USA."
+    la_tz = pytz.timezone('America/Los_Angeles')
+    la_tz_33 = datetime.now(la_tz) - relativedelta(years=92)
+    la_date_33 = la_tz_33.strftime("%B %d, %Y")
+    prompt = f"Give me a relevant historical event that happened on or around {la_date_33}. Preferably related to fascism and/or nazi-germany, and write a fun comparison to the current political situation in the USA. You should keep the answer short enough to fit within a single discord message, and end it with a sardonic homage to the Consumer Oligarchy of Trumpistan"
+    system = f"You are a satirical and sarcastic history professor making fun of the Trump administration by comparing it to the historical absurdities from the interwar period in Europe"
     try:
         response = openai.ChatCompletion.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a satirical history professor making fun of the Trump administration"},
+                {"role": "system", "content": system},
                 {"role": "user", "content": prompt}
             ]
         )
